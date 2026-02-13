@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Seat Allocation - Admin{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Seat Allocation</h1>
+    <p class="lead">Set enrollment capacity (seat limit) per course. The system prevents over-enrollment when students enroll.</p>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Code</th>
+                    <th>Department</th>
+                    <th>Enrolled</th>
+                    <th>Seat Limit</th>
+                    <th>Set Limit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courses %}
+                <tr>
+                    <td>{{ c.name }}</td>
+                    <td>{{ c.code }}</td>
+                    <td>{{ c.department }}</td>
+                    <td>{{ c.enrolled }}</td>
+                    <td>{{ c.seat_limit if c.seat_limit is not none else 'No limit' }}</td>
+                    <td>
+                        <input type="number" id="seat-{{ c.id }}" min="0" placeholder="Limit" value="{{ c.seat_limit or '' }}" style="width:80px;">
+                        <button type="button" class="btn btn-sm btn-primary set-seat-btn" data-id="{{ c.id }}">Set</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No courses.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.set-seat-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var id = this.dataset.id;
+        var input = document.getElementById('seat-' + id);
+        var val = input.value;
+        fetch('/admin/courses/' + id + '/seat-limit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seat_limit: val === '' ? null : parseInt(val, 10) })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) { alert('Seat limit updated.'); location.reload(); }
+            else alert(d.message || 'Failed');
+        });
+    });
+});
+</script>
+{% endblock %}

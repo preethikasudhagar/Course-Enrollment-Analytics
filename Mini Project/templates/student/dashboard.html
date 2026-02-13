@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - Course Enrollment Analytics{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Student Dashboard</h1>
+
+    <div class="dashboard-grid-2col">
+        <div class="dashboard-section">
+            <h2>My Enrollment Status</h2>
+            <p class="text-muted">Summary of your enrolled vs waitlisted courses.</p>
+            <div class="chart-container">
+                <canvas id="studentStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>My Courses</h2>
+            <p class="text-muted">Current courses you are enrolled in with seat status.</p>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Department</th>
+                            <th>Credits</th>
+                            <th>Status</th>
+                            <th>Seat Status</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if enrollments %}
+                            {% for enrollment in enrollments %}
+                            <tr>
+                                <td>{{ enrollment.course_name }} ({{ enrollment.course_code }})</td>
+                                <td>{{ enrollment.department }}</td>
+                                <td>{{ enrollment.credits }}</td>
+                                <td>
+                                    {% if enrollment.status == 'enrolled' %}
+                                        <span class="badge badge-success">Enrolled</span>
+                                    {% elif enrollment.status == 'waitlisted' %}
+                                        <span class="badge badge-warning">Waitlisted</span>
+                                    {% else %}
+                                        <span class="badge badge-default">{{ enrollment.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- Seat status is derived at course level; show simple label here -->
+                                    <span class="badge badge-default">See available seats below</span>
+                                </td>
+                                <td>{{ enrollment.grade or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-muted">You are not enrolled in any courses yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Course Announcements</h2>
+        <p class="text-muted">Announcements from your course instructors for the courses you are enrolled in.</p>
+        {% if announcements %}
+        <div class="announcements-list">
+            {% for ann in announcements %}
+            <div class="announcement-card">
+                <div class="announcement-meta">
+                    <strong>{{ ann.course_code }} – {{ ann.course_name }}</strong>
+                    <span class="announcement-date">{% if ann.created_at %}{{ ann.created_at.strftime('%b %d, %Y at %I:%M %p') }}{% else %}N/A{% endif %}</span>
+                </div>
+                <h3 class="announcement-title">{{ ann.title }}</h3>
+                {% if ann.body %}
+                <p class="announcement-body">{{ ann.body }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No announcements for your courses at the moment.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Available Courses</h2>
+        <p class="text-muted">Courses open for enrollment with current seat availability.</p>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Department</th>
+                        <th>Seat Limit</th>
+                        <th>Enrolled</th>
+                        <th>Available Seats</th>
+                        <th>My Enrollment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if available_courses %}
+                        {% for course in available_courses %}
+                        <tr>
+                            <td>{{ course.name }} ({{ course.code }})</td>
+                            <td>{{ course.department }}</td>
+                            <td>{{ course.seat_limit if course.seat_limit is not none else 'No Limit' }}</td>
+                            <td>{{ course.enrollment_count }}</td>
+                            <td>
+                                {% if course.seat_limit is none %}
+                                    <span class="badge badge-default">N/A</span>
+                                {% else %}
+                                    {% if course.seats_available is not none and course.seats_available > 0 %}
+                                        <span class="badge badge-success">{{ course.seats_available }}</span>
+                                    {% elif course.seats_available == 0 %}
+                                        <span class="badge badge-danger">Full</span>
+                                    {% else %}
+                                        <span class="badge badge-default">N/A</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if course.already_enrolled %}
+                                    <span class="badge badge-success">Enrolled</span>
+                                {% else %}
+                                    <span class="badge badge-default">Not Enrolled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-muted">No courses available at the moment.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusCounts = {{ status_counts|tojson }};
+    const ctx = document.getElementById('studentStatusChart');
+    if (ctx && statusCounts) {
+        const labels = ['Enrolled', 'Waitlisted'];
+        const dataValues = [
+            statusCounts.enrolled || 0,
+            statusCounts.waitlisted || 0
+        ];
+
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(5, 150, 105, 1)',
+                        'rgba(217, 119, 6, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

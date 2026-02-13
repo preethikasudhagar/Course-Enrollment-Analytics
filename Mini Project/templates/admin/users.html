@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title|default('User Management') }} - Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <h1>{{ page_title|default('User Management') }}</h1>
+    <p class="lead">{{ page_subtitle|default('') }}</p>
+
+    <div class="admin-actions">
+        {% if view == 'students' %}
+        <button type="button" class="btn btn-primary" onclick="showCreateUserModal('student')">Add Student</button>
+        {% elif view == 'faculty' %}
+        <button type="button" class="btn btn-primary" onclick="showCreateUserModal('faculty')">Add Faculty</button>
+        {% else %}
+        <button type="button" class="btn btn-primary" onclick="showCreateUserModal(null)">Create User</button>
+        {% endif %}
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr data-user-id="{{ user.id }}" data-user-name="{{ user.name }}" data-user-email="{{ user.email }}">
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        {% if view == 'roles' %}
+                        <select class="role-select" data-user-id="{{ user.id }}">
+                            <option value="student" {% if user.role == 'student' %}selected{% endif %}>Student</option>
+                            <option value="faculty" {% if user.role == 'faculty' %}selected{% endif %}>Faculty</option>
+                        </select>
+                        {% else %}
+                        <span class="badge badge-{{ user.role }}">{{ user.role|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary edit-user-btn" data-id="{{ user.id }}">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger delete-user-btn" data-id="{{ user.id }}" data-email="{{ user.email }}">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No users in this category.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditUserModal()">&times;</span>
+        <h2>Edit User</h2>
+        <form id="editUserForm">
+            <input type="hidden" id="editUserId">
+            <div class="form-group">
+                <label for="editUserName">Name</label>
+                <input type="text" id="editUserName" required>
+            </div>
+            <div class="form-group">
+                <label for="editUserEmail">Email</label>
+                <input type="email" id="editUserEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="editUserPassword">Password (optional reset)</label>
+                <input type="password" id="editUserPassword" placeholder="Leave blank to keep unchanged">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<div id="createUserModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeCreateUserModal()">&times;</span>
+        <h2 id="createModalTitle">Create User</h2>
+        <form id="createUserForm">
+            <input type="hidden" id="userRoleFixed" name="role_fixed" value="">
+            <div class="form-group">
+                <label for="userName">Name</label>
+                <input type="text" id="userName" required>
+            </div>
+            <div class="form-group">
+                <label for="userEmail">Email</label>
+                <input type="email" id="userEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="userPassword">Password</label>
+                <input type="password" id="userPassword" required>
+            </div>
+            <div class="form-group" id="userRoleGroup">
+                <label for="userRole">Role</label>
+                <select id="userRole">
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function showCreateUserModal(fixedRole) {
+    var modal = document.getElementById('createUserModal');
+    var title = document.getElementById('createModalTitle');
+    var roleGroup = document.getElementById('userRoleGroup');
+    var roleSelect = document.getElementById('userRole');
+    var roleFixed = document.getElementById('userRoleFixed');
+    if (fixedRole === 'student') {
+        title.textContent = 'Add Student';
+        roleGroup.style.display = 'none';
+        roleFixed.value = 'student';
+    } else if (fixedRole === 'faculty') {
+        title.textContent = 'Add Faculty';
+        roleGroup.style.display = 'none';
+        roleFixed.value = 'faculty';
+    } else {
+        title.textContent = 'Create User (Role Assignment)';
+        roleGroup.style.display = 'block';
+        roleFixed.value = '';
+    }
+    modal.style.display = 'block';
+}
+function closeCreateUserModal() {
+    document.getElementById('createUserModal').style.display = 'none';
+}
+
+document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var role = document.getElementById('userRoleFixed').value || document.getElementById('userRole').value;
+    var data = {
+        name: document.getElementById('userName').value,
+        email: document.getElementById('userEmail').value,
+        password: document.getElementById('userPassword').value,
+        role: role
+    };
+    try {
+        var r = await fetch('/admin/users/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        var result = await r.json();
+        if (result.success) { alert('User created.'); location.reload(); }
+        else alert(result.message || 'Failed');
+    } catch (err) { alert('Error'); }
+});
+
+document.querySelectorAll('.role-select').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+        var userId = this.dataset.userId;
+        var role = this.value;
+        fetch('/admin/users/' + userId + '/assign-role', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role }) })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.success) alert('Role updated'); else alert(d.message || 'Failed'); })
+            .catch(function() { alert('Request failed'); });
+    });
+});
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+document.querySelectorAll('.edit-user-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var row = this.closest('tr');
+        document.getElementById('editUserId').value = this.dataset.id;
+        document.getElementById('editUserName').value = row.dataset.userName || '';
+        document.getElementById('editUserEmail').value = row.dataset.userEmail || '';
+        document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserModal').style.display = 'block';
+    });
+});
+document.getElementById('editUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var id = document.getElementById('editUserId').value;
+    var payload = {
+        name: document.getElementById('editUserName').value.trim(),
+        email: document.getElementById('editUserEmail').value.trim()
+    };
+    var pw = document.getElementById('editUserPassword').value;
+    if (pw && pw.trim().length) payload.password = pw;
+    var r = await fetch('/admin/users/' + id + '/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    var d = await r.json();
+    if (d.success) location.reload();
+    else alert(d.message || 'Failed');
+});
+document.querySelectorAll('.delete-user-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        if (!confirm('Delete user ' + this.dataset.email + '?')) return;
+        var id = this.dataset.id;
+        fetch('/admin/users/' + id + '/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.success) location.reload(); else alert(d.message); });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Department Mapping - Admin{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Department Mapping</h1>
+    <p class="lead">Assign each course to a department. Courses are organized by department in the catalog and analytics.</p>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Code</th>
+                    <th>Current Department</th>
+                    <th>Change Department</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courses %}
+                <tr>
+                    <td>{{ c.name }}</td>
+                    <td>{{ c.code }}</td>
+                    <td>{{ c.department.name if c.department else '—' }}</td>
+                    <td>
+                        <select class="dept-select" data-course-id="{{ c.id }}">
+                            {% for d in departments %}
+                            <option value="{{ d.id }}" {% if c.department_id == d.id %}selected{% endif %}>{{ d.name }} ({{ d.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-sm btn-primary update-dept-btn" data-id="{{ c.id }}">Update</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No courses.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.update-dept-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var id = this.dataset.id;
+        var row = this.closest('tr');
+        var deptId = parseInt(row.querySelector('.dept-select').value, 10);
+        fetch('/admin/courses/' + id + '/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ department_id: deptId })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) { alert('Department updated.'); location.reload(); }
+            else alert(d.message || 'Failed');
+        });
+    });
+});
+</script>
+{% endblock %}

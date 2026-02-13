@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Academic Monitoring - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Academic Monitoring</h1>
+    <p class="lead">Track enrollment status, waitlisted students, add remarks for review, and see cutoff alerts.</p>
+
+    {% if cutoff_alerts %}
+    <div class="dashboard-section alerts-section">
+        <h2>Enrollment Cutoff Alerts (Seats Nearly Full)</h2>
+        <ul class="alert-list">
+            {% for a in cutoff_alerts %}
+            <li class="alert-item alert-under_enrolled">
+                <strong>{{ a.course }} ({{ a.code }})</strong> — {{ a.enrolled }} / {{ a.limit }} seats (≥90% full)
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="dashboard-section">
+        <h2>Course Enrollment Status</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Code</th>
+                        <th>Enrolled</th>
+                        <th>Waitlisted</th>
+                        <th>Seat Limit</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in courses %}
+                    <tr>
+                        <td>{{ c.course_name }}</td>
+                        <td>{{ c.course_code }}</td>
+                        <td>{{ c.enrollment_count }}</td>
+                        <td>{{ c.waitlisted_count }}</td>
+                        <td>{{ c.seat_limit if c.seat_limit is not none else '—' }}</td>
+                        <td>
+                            {% if c.status == 'over_enrolled' %}
+                            <span class="badge badge-danger">Over-enrolled</span>
+                            {% elif c.status == 'under_enrolled' %}
+                            <span class="badge badge-warning">Under-enrolled</span>
+                            {% else %}
+                            <span class="badge badge-success">Normal</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="{{ url_for('faculty.students') }}?filter_course={{ c.course_id }}" class="btn btn-sm btn-primary">View Students / Add Remarks</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7">No courses assigned.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if waitlisted %}
+    <div class="dashboard-section">
+        <h2>Waitlisted Students</h2>
+        <p class="text-muted">Students on waitlist when course is full. Manage status from Enrolled Students.</p>
+        <table class="data-table">
+            <thead>
+                <tr><th>Course</th><th>Student</th><th>Email</th></tr>
+            </thead>
+            <tbody>
+                {% for w in waitlisted %}
+                <tr>
+                    <td>{{ w.course_name }} ({{ w.course_code }})</td>
+                    <td>{{ w.student_name }}</td>
+                    <td>{{ w.student_email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="dashboard-section">
+        <h2>Waitlisted Students</h2>
+        <p class="text-muted">No waitlisted students for your assigned courses.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

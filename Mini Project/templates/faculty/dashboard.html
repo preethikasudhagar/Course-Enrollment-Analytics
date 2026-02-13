@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - Course Enrollment Analytics{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Faculty Dashboard</h1>
+
+    <!-- Assigned Courses Analytics -->
+    <div class="dashboard-grid-2col">
+        <div class="dashboard-section">
+            <h2>Enrollment by Assigned Course</h2>
+            <p class="text-muted">Number of enrolled students in each of your assigned courses.</p>
+            <div class="chart-container">
+                <canvas id="courseChart"></canvas>
+                {% if not course_data %}
+                <p class="text-muted">No assigned course enrollment data available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Seat Utilization per Course</h2>
+            <p class="text-muted">Configured seat limits vs current enrollments for your courses.</p>
+            <div class="chart-container">
+                <canvas id="seatUtilizationChart"></canvas>
+                {% if not utilization_list %}
+                <p class="text-muted">No seat utilization data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid-2col">
+        <div class="dashboard-section">
+            <h2>Enrollment Trend (Assigned Courses)</h2>
+            <p class="text-muted">Enrollment growth over time across your assigned courses.</p>
+            <div class="chart-container">
+                <canvas id="trendsChart"></canvas>
+                {% if not trends_data %}
+                <p class="text-muted">No enrollment trends data available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Enrollment Status Distribution</h2>
+            <p class="text-muted">Distribution of Enrolled vs Waitlisted students in your courses.</p>
+            <div class="chart-container">
+                <canvas id="statusDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waitlisted and Enrolled Students Tables -->
+    <div class="dashboard-grid-2col">
+        <div class="dashboard-section">
+            <h2>Waitlisted Students</h2>
+            <p class="text-muted">Students exceeding seat limits in your assigned courses.</p>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Email</th>
+                            <th>Course</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if waitlisted %}
+                            {% for w in waitlisted %}
+                            <tr>
+                                <td>{{ w.student_name }}</td>
+                                <td>{{ w.student_email }}</td>
+                                <td>{{ w.course_name }} ({{ w.course_code }})</td>
+                                <td><span class="badge badge-warning">Waitlisted</span></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-muted">No waitlisted students for your courses.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Enrolled Students</h2>
+            <p class="text-muted">Students currently enrolled in your assigned courses.</p>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Email</th>
+                            <th>Course</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if enrollments %}
+                            {% for enrollment in enrollments %}
+                            <tr>
+                                <td>{{ enrollment.student_name }}</td>
+                                <td>{{ enrollment.student_email }}</td>
+                                <td>{{ enrollment.course_name }} ({{ enrollment.course_code }})</td>
+                                <td>{{ enrollment.department }}</td>
+                                <td>
+                                    {% if enrollment.status == 'enrolled' %}
+                                        <span class="badge badge-success">Enrolled</span>
+                                    {% elif enrollment.status == 'waitlisted' %}
+                                        <span class="badge badge-warning">Waitlisted</span>
+                                    {% else %}
+                                        <span class="badge badge-default">{{ enrollment.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ enrollment.grade or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-muted">No enrolled students found for your courses.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Assigned Course Enrollment (Bar Chart)
+    const courseData = {{ course_data|tojson }};
+    if (courseData && courseData.length > 0) {
+        const courseCtx = document.getElementById('courseChart');
+        if (courseCtx) {
+            new Chart(courseCtx, {
+                type: 'bar',
+                data: {
+                    labels: courseData.map(c => (c.course_code || '') + ' - ' + (c.course_name || 'Unknown')),
+                    datasets: [{
+                        label: 'Enrollments',
+                        data: courseData.map(c => c.enrollment_count || 0),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+    } else {
+        console.warn('No course data available for chart');
+    }
+    
+    // Enrollment Trends (Line Chart)
+    const trendsData = {{ trends_data|tojson }};
+    if (trendsData && trendsData.length > 0) {
+        const trendsCtx = document.getElementById('trendsChart');
+        if (trendsCtx) {
+            const formattedLabels = trendsData.map(t => {
+                if (!t.date) return 'Unknown';
+                const date = new Date(t.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: formattedLabels,
+                    datasets: [{
+                        label: 'Enrollments',
+                        data: trendsData.map(t => t.count || 0),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Date: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return 'Enrollments: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    } else {
+        console.warn('No trends data available for chart');
+    }
+
+    // Seat Utilization Chart (Bar + Line)
+    const utilizationData = {{ utilization_list|tojson }};
+    if (utilizationData && utilizationData.length > 0) {
+        const seatCtx = document.getElementById('seatUtilizationChart');
+        if (seatCtx) {
+            const labels = utilizationData.map(u => (u.course_code || '') + ' - ' + (u.course_name || 'Unknown'));
+            const enrolledCounts = utilizationData.map(u => u.enrolled || 0);
+            const seatLimits = utilizationData.map(u => u.seat_limit !== null && u.seat_limit !== undefined ? u.seat_limit : 0);
+            const utilizationPct = utilizationData.map(u => u.utilization_pct || 0);
+
+            new Chart(seatCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Enrolled',
+                            data: enrolledCounts,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Seat Limit',
+                            data: seatLimits,
+                            type: 'line',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Utilization %',
+                            data: utilizationPct,
+                            type: 'line',
+                            borderColor: 'rgba(234, 179, 8, 1)',
+                            backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Students / Seat Limit'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Utilization %'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+    } else {
+        console.warn('No utilization data available for chart');
+    }
+
+    // Enrollment Status Distribution (Pie Chart for Enrolled vs Waitlisted)
+    (function buildStatusDistribution() {
+        const enrolledRows = {{ enrollments|tojson }};
+        const waitlistedRows = {{ waitlisted|tojson }};
+        const enrolledCount = (enrolledRows || []).filter(r => r.status === 'enrolled').length;
+        const waitlistedCount = (waitlistedRows || []).length;
+        const statusCtx = document.getElementById('statusDistributionChart');
+
+        if (!statusCtx) return;
+
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Enrolled', 'Waitlisted'],
+                datasets: [{
+                    data: [enrolledCount, waitlistedCount],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(5, 150, 105, 1)',
+                        'rgba(217, 119, 6, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+});
+</script>
+{% endblock %}

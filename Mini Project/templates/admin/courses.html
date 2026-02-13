@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Courses - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Course Management</h1>
+    
+    <div class="admin-actions">
+        <button onclick="showCreateCourseModal()" class="btn btn-primary">Create New Course</button>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Credits</th>
+                    <th>Seat Limit</th>
+                    <th>Enrolled</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr data-course-id="{{ course.id }}">
+                    <td>{{ course.code }}</td>
+                    <td>{{ course.name }}</td>
+                    <td>{{ course.department.name if course.department else 'N/A' }}</td>
+                    <td>{{ course.credits }}</td>
+                    <td>{{ course.seat_limit if course.seat_limit is not none else '—' }}</td>
+                    <td>{{ course.current_enrollment_count() }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary edit-course-btn" data-id="{{ course.id }}" data-name="{{ course.name }}" data-code="{{ course.code }}" data-dept="{{ course.department_id }}" data-credits="{{ course.credits }}" data-seat="{{ course.seat_limit or '' }}">Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger delete-course-btn" data-id="{{ course.id }}">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Course Modal -->
+<div id="createCourseModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeCreateCourseModal()">&times;</span>
+        <h2>Create New Course</h2>
+        <form id="createCourseForm">
+            <div class="form-group">
+                <label for="courseName">Name:</label>
+                <input type="text" id="courseName" required>
+            </div>
+            <div class="form-group">
+                <label for="courseCode">Code:</label>
+                <input type="text" id="courseCode" required>
+            </div>
+            <div class="form-group">
+                <label for="courseDepartment">Department:</label>
+                <select id="courseDepartment" required>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="courseCredits">Credits:</label>
+                <input type="number" id="courseCredits" value="3" min="1" max="6" required>
+            </div>
+            <div class="form-group">
+                <label for="courseSeatLimit">Seat Limit (optional):</label>
+                <input type="number" id="courseSeatLimit" min="0" placeholder="Leave empty for no limit">
+            </div>
+            <button type="submit" class="btn btn-primary">Create Course</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Course Modal -->
+<div id="editCourseModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditCourseModal()">&times;</span>
+        <h2>Edit Course</h2>
+        <form id="editCourseForm">
+            <input type="hidden" id="editCourseId">
+            <div class="form-group">
+                <label for="editCourseName">Name:</label>
+                <input type="text" id="editCourseName" required>
+            </div>
+            <div class="form-group">
+                <label for="editCourseCode">Code:</label>
+                <input type="text" id="editCourseCode" required>
+            </div>
+            <div class="form-group">
+                <label for="editCourseDepartment">Department:</label>
+                <select id="editCourseDepartment" required>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editCourseCredits">Credits:</label>
+                <input type="number" id="editCourseCredits" min="1" max="6" required>
+            </div>
+            <div class="form-group">
+                <label for="editCourseSeatLimit">Seat Limit (optional):</label>
+                <input type="number" id="editCourseSeatLimit" min="0" placeholder="Leave empty for no limit">
+            </div>
+            <button type="submit" class="btn btn-primary">Update Course</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showCreateCourseModal() {
+        document.getElementById('createCourseModal').style.display = 'block';
+    }
+    
+    function closeCreateCourseModal() {
+        document.getElementById('createCourseModal').style.display = 'none';
+    }
+    
+    document.getElementById('createCourseForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const seatVal = document.getElementById('courseSeatLimit').value;
+        const data = {
+            name: document.getElementById('courseName').value,
+            code: document.getElementById('courseCode').value,
+            department_id: parseInt(document.getElementById('courseDepartment').value),
+            credits: parseInt(document.getElementById('courseCredits').value),
+            seat_limit: seatVal ? parseInt(seatVal, 10) : null
+        };
+        
+        try {
+            const response = await fetch('/admin/courses/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Course created successfully');
+                location.reload();
+            } else {
+                alert(result.message || 'Failed to create course');
+            }
+        } catch (error) {
+            alert('Error creating course');
+        }
+    });
+
+    document.querySelectorAll('.edit-course-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('editCourseId').value = this.dataset.id;
+            document.getElementById('editCourseName').value = this.dataset.name;
+            document.getElementById('editCourseCode').value = this.dataset.code;
+            document.getElementById('editCourseDepartment').value = this.dataset.dept;
+            document.getElementById('editCourseCredits').value = this.dataset.credits;
+            document.getElementById('editCourseSeatLimit').value = this.dataset.seat || '';
+            document.getElementById('editCourseModal').style.display = 'block';
+        });
+    });
+    function closeEditCourseModal() {
+        document.getElementById('editCourseModal').style.display = 'none';
+    }
+    document.getElementById('editCourseForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var id = document.getElementById('editCourseId').value;
+        var seatVal = document.getElementById('editCourseSeatLimit').value;
+        var data = {
+            name: document.getElementById('editCourseName').value,
+            code: document.getElementById('editCourseCode').value,
+            department_id: parseInt(document.getElementById('editCourseDepartment').value),
+            credits: parseInt(document.getElementById('editCourseCredits').value),
+            seat_limit: seatVal ? parseInt(seatVal, 10) : null
+        };
+        try {
+            var r = await fetch('/admin/courses/' + id + '/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            var res = await r.json();
+            if (res.success) { alert('Course updated'); location.reload(); }
+            else alert(res.message || 'Failed');
+        } catch (err) { alert('Error'); }
+    });
+
+    document.querySelectorAll('.delete-course-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (!confirm('Delete this course? Enrollments will be affected.')) return;
+            var id = this.dataset.id;
+            fetch('/admin/courses/' + id + '/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (d.success) location.reload(); else alert(d.message); });
+        });
+    });
+</script>
+{% endblock %}

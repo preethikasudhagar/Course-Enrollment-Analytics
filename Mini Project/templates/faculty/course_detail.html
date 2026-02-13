@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ course.name }} - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Course Details</h1>
+    <div class="profile-card" style="max-width: 100%;">
+        <div class="profile-card-header">
+            <h2>{{ course.name }}</h2>
+            <span class="role-badge">{{ course.code }}</span>
+        </div>
+        <div class="profile-card-body">
+            <div class="profile-row"><label>Course Code</label><span>{{ course.code }}</span></div>
+            <div class="profile-row"><label>Department</label><span>{{ course.department.name if course.department else '—' }}</span></div>
+            <div class="profile-row"><label>Credits</label><span>{{ course.credits }}</span></div>
+            <div class="profile-row"><label>Schedule</label><span>{{ course.schedule or '—' }}</span></div>
+            <div class="profile-row"><label>Semester</label><span>{{ course.semester or '—' }}</span></div>
+            <div class="profile-row"><label>Total Seats</label><span>{{ course.seat_limit or 'No limit' }}</span></div>
+            <div class="profile-row"><label>Enrolled</label><span>{{ course.current_enrollment_count() }}</span></div>
+            {% if course.description %}
+            <div class="profile-row"><label>Description</label><span>{{ course.description }}</span></div>
+            {% endif %}
+            {% if course.syllabus %}
+            <div class="profile-row"><label>Syllabus</label></div>
+            <div class="syllabus-box">{{ course.syllabus or '' }}</div>
+            {% else %}
+            <div class="profile-row"><label>Syllabus</label><span class="text-muted">Not provided.</span></div>
+            {% endif %}
+            <div class="profile-actions">
+                <a href="{{ url_for('faculty.my_courses') }}" class="btn btn-primary">Back to My Courses</a>
+            </div>
+        </div>
+    </div>
+</div>
+<style>.syllabus-box { white-space: pre-wrap; padding: 1rem; background: #f4f6f9; border-radius: 8px; margin-top: 0.5rem; }</style>
+{% endblock %}

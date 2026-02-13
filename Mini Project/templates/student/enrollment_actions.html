@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Enrollment Actions - Student{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Enrollment Actions</h1>
+    <p class="lead">Enroll in or withdraw from courses. Seat limits are enforced.</p>
+
+    <div class="dashboard-section">
+        <h2>Enroll in a Course</h2>
+        <form id="enrollForm">
+            <div class="form-group">
+                <label>Select Course</label>
+                <select name="course_id" id="enrollCourseId" required>
+                    <option value="">-- Select --</option>
+                    {% for c in course_options %}
+                    <option value="{{ c.id }}" data-seats="{{ c.seats_available if c.seats_available is not none else 999 }}">{{ c.name }} ({{ c.code }}) - {{ c.seats_available if c.seats_available is not none else 'No limit' }} seats</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Enroll</button>
+        </form>
+        <div id="enrollMessage"></div>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>My Enrollments (Withdraw)</h2>
+        <table class="data-table">
+            <thead>
+                <tr><th>Course</th><th>Code</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                {% for e in enrollments %}
+                <tr>
+                    <td>{{ e.course_name }}</td>
+                    <td>{{ e.course_code }}</td>
+                    <td>{{ e.status }}</td>
+                    <td><button type="button" class="btn btn-sm btn-danger withdraw-btn" data-course-id="{{ e.course_id }}">Withdraw</button></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No enrollments.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+document.getElementById('enrollForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var courseId = document.getElementById('enrollCourseId').value;
+    if (!courseId) return;
+    try {
+        var r = await fetch('/student/courses/enroll', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ course_id: parseInt(courseId, 10) })
+        });
+        var d = await r.json();
+        document.getElementById('enrollMessage').textContent = d.message || (d.success ? 'Enrolled.' : 'Failed');
+        if (d.success) setTimeout(function() { location.reload(); }, 1000);
+    } catch (err) { document.getElementById('enrollMessage').textContent = 'Request failed'; }
+});
+document.querySelectorAll('.withdraw-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+        if (!confirm('Withdraw from this course?')) return;
+        var courseId = this.dataset.courseId;
+        try {
+            var r = await fetch('/student/courses/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_id: parseInt(courseId, 10) })
+            });
+            var d = await r.json();
+            alert(d.message);
+            if (d.success) location.reload();
+        } catch (err) { alert('Request failed'); }
+    });
+});
+</script>
+{% endblock %}

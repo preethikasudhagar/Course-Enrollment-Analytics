@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Faculty ↔ Course Mapping - Admin{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+  <h1>Faculty ↔ Course Mapping</h1>
+  <p class="lead">Assign courses to faculty so Faculty Dashboard shows assigned courses, students, analytics. Changes are logged.</p>
+
+  <div class="dashboard-section">
+    <div class="form-group">
+      <label>Select Faculty</label>
+      <select id="facultySelect">
+        <option value="">-- Select --</option>
+        {% for f in faculty_list %}
+        <option value="{{ f.faculty_id }}"
+                data-name="{{ f.name }}"
+                data-email="{{ f.email }}"
+                data-dept="{{ f.department_id or '' }}"
+                data-courses="{{ f.assigned_course_ids|tojson|e }}">
+          {{ f.name }} ({{ f.email }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="mappingPanel" style="display:none;">
+      <div class="profile-row"><label>Faculty</label><span id="facName"></span></div>
+      <div class="profile-row"><label>Email</label><span id="facEmail"></span></div>
+
+      <div class="form-group">
+        <label>Assigned Department (for department-level analytics)</label>
+        <select id="deptSelect">
+          <option value="">-- Not Assigned --</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}">{{ d.name }} ({{ d.code }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Assign Courses</label>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
+          {% for c in courses %}
+          <label style="display:flex; gap:0.5rem; align-items:center; background:#f4f6f9; padding:0.5rem; border-radius:6px;">
+            <input type="checkbox" class="courseCheckbox" value="{{ c.id }}">
+            <span>{{ c.code }} — {{ c.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="saveMapping">Save Mapping</button>
+      <span id="saveMsg" class="text-muted" style="margin-left:0.75rem;"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var sel = document.getElementById('facultySelect');
+  var panel = document.getElementById('mappingPanel');
+  var nameEl = document.getElementById('facName');
+  var emailEl = document.getElementById('facEmail');
+  var deptSel = document.getElementById('deptSelect');
+  var msg = document.getElementById('saveMsg');
+
+  function setChecks(ids){
+    var set = new Set((ids || []).map(function(x){ return parseInt(x,10); }));
+    document.querySelectorAll('.courseCheckbox').forEach(function(cb){
+      cb.checked = set.has(parseInt(cb.value,10));
+    });
+  }
+
+  sel.addEventListener('change', function(){
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value){ panel.style.display='none'; return; }
+    panel.style.display='block';
+    nameEl.textContent = opt.dataset.name || '';
+    emailEl.textContent = opt.dataset.email || '';
+    deptSel.value = opt.dataset.dept || '';
+    try {
+      var ids = JSON.parse(opt.dataset.courses || '[]');
+      setChecks(ids);
+    } catch(e){ setChecks([]); }
+    msg.textContent = '';
+  });
+
+  document.getElementById('saveMapping').addEventListener('click', async function(){
+    var facultyId = sel.value;
+    if (!facultyId) return;
+    var courseIds = [];
+    document.querySelectorAll('.courseCheckbox:checked').forEach(function(cb){
+      courseIds.push(parseInt(cb.value,10));
+    });
+    msg.textContent = 'Saving...';
+    var r = await fetch('/admin/faculty-mapping', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ faculty_id: parseInt(facultyId,10), department_id: deptSel.value || null, course_ids: courseIds })
+    });
+    var d = await r.json();
+    msg.textContent = d.message || (d.success ? 'Saved' : 'Failed');
+    if (d.success) setTimeout(function(){ location.reload(); }, 600);
+  });
+})();
+</script>
+{% endblock %}
+

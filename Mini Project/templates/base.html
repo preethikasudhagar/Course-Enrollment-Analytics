@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Course Enrollment Analytics System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="app-body">
+    <!-- Top bar (visible on all viewports) -->
+    <header class="topbar">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-brand">Course Enrollment Analytics</div>
+        <div class="topbar-user">
+            {% if session.get('user_id') %}
+            <span class="topbar-name">Welcome, {{ session.get('name', 'User') }}</span>
+            <span class="topbar-role">({{ (session.get('role') or '')|title }})</span>
+            <a href="{{ url_for('auth.logout') }}" class="topbar-link">Logout</a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="topbar-link">Login</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="app-wrapper">
+        <!-- Sidebar - role-based; hidden on mobile until toggled -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                {% if session.get('role') == 'admin' %}
+                <!-- ADMIN MENU -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="{{ url_for('admin.dashboard') }}" class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">Dashboard Overview</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">User Management</div>
+                    <a href="{{ url_for('admin.users') }}?view=students" class="nav-item {% if request.endpoint == 'admin.users' and request.args.get('view', 'students') == 'students' %}active{% endif %}">Manage Students</a>
+                    <a href="{{ url_for('admin.users') }}?view=faculty" class="nav-item {% if request.endpoint == 'admin.users' and request.args.get('view') == 'faculty' %}active{% endif %}">Manage Faculty</a>
+                    <a href="{{ url_for('admin.users') }}?view=roles" class="nav-item {% if request.endpoint == 'admin.users' and request.args.get('view') == 'roles' %}active{% endif %}">Role Assignment</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Course Management</div>
+                    <a href="{{ url_for('admin.courses') }}" class="nav-item {% if request.endpoint == 'admin.courses' %}active{% endif %}">Add / Update / Delete Course</a>
+                    <a href="{{ url_for('admin.seat_allocation') }}" class="nav-item {% if request.endpoint == 'admin.seat_allocation' %}active{% endif %}">Seat Allocation</a>
+                    <a href="{{ url_for('admin.department_mapping') }}" class="nav-item {% if request.endpoint == 'admin.department_mapping' %}active{% endif %}">Department Mapping</a>
+                    <a href="{{ url_for('admin.faculty_mapping') }}" class="nav-item {% if request.endpoint == 'admin.faculty_mapping' %}active{% endif %}">Faculty ↔ Course Mapping</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Analytics&Reports</div>
+                    <a href="{{ url_for('admin.analytics_overview') }}" class="nav-item {% if request.endpoint == 'admin.analytics_overview' %}active{% endif %}">Course Capacity Utilization</a>
+                    <a href="{{ url_for('admin.analytics_course_wise') }}" class="nav-item {% if request.endpoint == 'admin.analytics_course_wise' %}active{% endif %}">Course-wise Enrollment</a>
+                    <a href="{{ url_for('admin.analytics_department_wise') }}" class="nav-item {% if request.endpoint == 'admin.analytics_department_wise' %}active{% endif %}">Department-wise Enrollment</a>
+                    <a href="{{ url_for('admin.analytics_high_low_demand') }}" class="nav-item {% if request.endpoint == 'admin.analytics_high_low_demand' %}active{% endif %}">High / Low Demand Courses</a>
+                    <a href="{{ url_for('admin.analytics_trends') }}" class="nav-item {% if request.endpoint == 'admin.analytics_trends' %}active{% endif %}">Enrollment Trends</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a href="{{ url_for('admin.audit_logs') }}" class="nav-item {% if request.endpoint == 'admin.audit_logs' %}active{% endif %}">System Logs</a>
+                    <a href="{{ url_for('admin.admin_profile') }}" class="nav-item {% if request.endpoint == 'admin.admin_profile' %}active{% endif %}">Profile</a>
+                    <a href="{{ url_for('auth.change_password') }}" class="nav-item">Change Password</a>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-item">Logout</a>
+                </div>
+                {% elif session.get('role') == 'faculty' %}
+                <!-- FACULTY MENU -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="{{ url_for('faculty.dashboard') }}" class="nav-item {% if request.endpoint == 'faculty.dashboard' %}active{% endif %}">Dashboard Overview</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Academic</div>
+                    <a href="{{ url_for('faculty.my_courses') }}" class="nav-item {% if request.endpoint == 'faculty.my_courses' %}active{% endif %}">My Courses</a>
+                    <a href="{{ url_for('faculty.students') }}" class="nav-item {% if request.endpoint == 'faculty.students' %}active{% endif %}">Enrolled Students</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Analytics</div>
+                    <a href="{{ url_for('faculty.analytics') }}" class="nav-item {% if request.endpoint == 'faculty.analytics' %}active{% endif %}">Course Analytics</a>
+                    <a href="{{ url_for('faculty.academic_monitoring') }}" class="nav-item {% if request.endpoint == 'faculty.academic_monitoring' %}active{% endif %}">Academic Monitoring</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Communication</div>
+                    <a href="{{ url_for('faculty.communication') }}" class="nav-item {% if request.endpoint == 'faculty.communication' %}active{% endif %}">Announcements</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Profile & Security</div>
+                    <a href="{{ url_for('faculty.profile') }}" class="nav-item {% if request.endpoint == 'faculty.profile' %}active{% endif %}">View Profile</a>
+                    <a href="{{ url_for('auth.change_password') }}" class="nav-item">Change Password</a>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-item">Logout</a>
+                </div>
+                {% elif session.get('role') == 'student' %}
+                <!-- STUDENT MENU -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="{{ url_for('student.dashboard') }}" class="nav-item {% if request.endpoint == 'student.dashboard' %}active{% endif %}">Dashboard Overview</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Courses</div>
+                    <a href="{{ url_for('student.available_courses') }}" class="nav-item {% if request.endpoint == 'student.available_courses' %}active{% endif %}">Available Courses</a>
+                    <a href="{{ url_for('student.courses') }}" class="nav-item {% if request.endpoint == 'student.courses' %}active{% endif %}">My Enrollments</a>
+                    <a href="{{ url_for('student.enrollment_actions') }}" class="nav-item {% if request.endpoint == 'student.enrollment_actions' %}active{% endif %}">Enrollment Actions</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Profile & Settings</div>
+                    <a href="{{ url_for('student.profile') }}" class="nav-item {% if request.endpoint == 'student.profile' %}active{% endif %}">View Profile</a>
+                    <a href="{{ url_for('auth.change_password') }}" class="nav-item">Change Password</a>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-item">Logout</a>
+                </div>
+                {% else %}
+                <div class="nav-section">
+                    <a href="{{ url_for('auth.login') }}" class="nav-item">Login</a>
+                </div>
+                {% endif %}
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/rbac.js') }}"></script>
+    <div data-user-role="{{ session.get('role', '') }}" style="display: none;"></div>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

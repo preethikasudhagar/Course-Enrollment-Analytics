@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Student Profile (Read-Only) - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Student Profile</h1>
+    <p class="lead">Read-only view. Student is enrolled in at least one of your assigned courses.</p>
+    <div class="profile-card" style="max-width: 560px;">
+        <div class="profile-card-header">
+            <h2>{{ user.name }}</h2>
+            <span class="role-badge">Roll: {{ student.student_id or '—' }}</span>
+        </div>
+        <div class="profile-card-body">
+            <div class="profile-row"><label>Name</label><span>{{ user.name }}</span></div>
+            <div class="profile-row"><label>Email</label><span>{{ user.email }}</span></div>
+            <div class="profile-row"><label>Roll Number</label><span>{{ student.student_id or '—' }}</span></div>
+            <h3 style="margin-top:1rem;">Enrollments in Your Courses</h3>
+            {% for cr in courses %}
+            <div class="profile-row">
+                <label>{{ cr.code }}</label>
+                <span>{{ cr.name }} — Status: {{ cr.status }}{% if cr.remarks %} ({{ cr.remarks[:80] }}{% if cr.remarks|length > 80 %}…{% endif %}){% endif %}</span>
+            </div>
+            {% endfor %}
+            <div class="profile-actions">
+                <a href="{{ url_for('faculty.students') }}" class="btn btn-primary">Back to Enrolled Students</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

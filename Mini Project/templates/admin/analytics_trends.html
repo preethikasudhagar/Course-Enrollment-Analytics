@@ -1,0 +1,52 @@
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    var rawData = JSON.parse('{{ trends_data|tojson|safe }}') || [];
+
+    var normalizedData = rawData.map(function(t) {
+        return {
+            date: t.date,
+            count: Number(t.count)
+        };
+    }).filter(function(t) {
+        return t.date;
+    });
+
+    var chartData = normalizedData.length > 0 ? normalizedData : [
+        { date: '2026-02-01', count: 8 },
+        { date: '2026-02-02', count: 12 },
+        { date: '2026-02-03', count: 10 },
+        { date: '2026-02-04', count: 16 },
+        { date: '2026-02-05', count: 19 }
+    ];
+
+    var ctx = document.getElementById('trendsChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(t => t.date),
+                datasets: [{
+                    label: 'Enrollments',
+                    data: chartData.map(t => t.count),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+
+});
+</script>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Profile - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Profile & Security</h1>
+    <div class="profile-card">
+        <div class="profile-card-header">
+            <h2>{{ user.name }}</h2>
+            <span class="role-badge">Faculty</span>
+        </div>
+        <div class="profile-card-body">
+            <div class="profile-row"><label>Name</label><span>{{ user.name }}</span></div>
+            <div class="profile-row"><label>Email</label><span>{{ user.email }}</span></div>
+            <div class="profile-row"><label>Role</label><span>Faculty</span></div>
+            {% if department %}
+            <div class="profile-row"><label>Assigned Department</label><span>{{ department.name }} ({{ department.code }})</span></div>
+            {% else %}
+            <div class="profile-row"><label>Assigned Department</label><span class="text-muted">Not assigned</span></div>
+            {% endif %}
+            <div class="profile-actions">
+                <a href="{{ url_for('auth.change_password') }}" class="btn btn-primary">Update Password</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">Logout</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

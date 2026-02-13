@@ -1,0 +1,11 @@
+name,email,password,role,employee_id,department_code
+Prof. Margaret Young,faculty1@college.edu,faculty123,faculty,FAC1001,CS
+Prof. Emily Wilson,faculty2@college.edu,faculty123,faculty,FAC1002,IT
+Prof. Jessica Clark,faculty3@college.edu,faculty123,faculty,FAC1003,IS
+Dr. Maria Flores,faculty4@college.edu,faculty123,faculty,FAC1004,EE
+Prof. Elizabeth Mitchell,faculty5@college.edu,faculty123,faculty,FAC1005,ME
+Prof. Sarah Adams,faculty6@college.edu,faculty123,faculty,FAC1006,CE
+Dr. Daniel Sanchez,faculty7@college.edu,faculty123,faculty,FAC1007,CS
+Prof. Christopher Rivera,faculty8@college.edu,faculty123,faculty,FAC1008,IT
+Prof. Laura Miller,faculty9@college.edu,faculty123,faculty,FAC1009,IS
+Prof. Michelle Robinson,faculty10@college.edu,faculty123,faculty,FAC1010,EE

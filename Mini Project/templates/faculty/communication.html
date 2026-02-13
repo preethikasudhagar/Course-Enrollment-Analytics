@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Communication - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Communication</h1>
+    <p class="lead">Send course-level announcements to enrolled students. Post academic updates or enrollment status notifications.</p>
+
+    <div class="dashboard-section">
+        <h2>Post Announcement</h2>
+        <form id="announceForm">
+            <div class="form-group">
+                <label>Course (assigned only)</label>
+                <select name="course_id" id="annCourseId" required>
+                    <option value="">Select course</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="announcement_type" id="annType">
+                    <option value="general">General</option>
+                    <option value="academic_update">Academic Update</option>
+                    <option value="enrollment_status">Enrollment Status</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" id="annTitle" required placeholder="Announcement title">
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea name="body" id="annBody" rows="4" placeholder="Message to enrolled students"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Post Announcement</button>
+        </form>
+        <div id="annMessage" class="text-muted" style="margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Recent Announcements</h2>
+        <table class="data-table">
+            <thead>
+                <tr><th>Date</th><th>Course</th><th>Type</th><th>Title</th></tr>
+            </thead>
+            <tbody>
+                {% for a in announcements %}
+                <tr>
+                    <td>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '—' }}</td>
+                    <td>{{ a.course_code }}</td>
+                    <td>{{ a.announcement_type }}</td>
+                    <td>{{ a.title }}{% if a.body %} — {{ (a.body[:60] + '…') if a.body|length > 60 else a.body }}{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No announcements yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+document.getElementById('announceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var msg = document.getElementById('annMessage');
+    try {
+        var r = await fetch('{{ url_for("faculty.communication_create") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                course_id: parseInt(document.getElementById('annCourseId').value, 10),
+                title: document.getElementById('annTitle').value.trim(),
+                body: document.getElementById('annBody').value.trim(),
+                announcement_type: document.getElementById('annType').value
+            })
+        });
+        var d = await r.json();
+        msg.textContent = d.message || (d.success ? 'Posted.' : 'Failed');
+        if (d.success) setTimeout(function(){ location.reload(); }, 800);
+    } catch (err) { msg.textContent = 'Request failed'; }
+});
+</script>
+{% endblock %}

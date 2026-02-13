@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Enrollment Management - Admin{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Enrollment Management</h1>
+    <p class="lead">View all enrollments.</p>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Status</th>
+                    <th>Enrolled</th>
+                    <th>Count / Limit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in enrollments %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.student_name }} <br><small>{{ e.student_email }}</small></td>
+                    <td>{{ e.course_name }} ({{ e.course_code }})</td>
+                    <td><span class="badge badge-{{ 'success' if e.status == 'enrolled' else 'warning' }}">{{ e.status }}</span></td>
+                    <td>{{ e.enrollment_date.strftime('%Y-%m-%d') if e.enrollment_date else '-' }}</td>
+                    <td>{{ e.current_count }} / {{ e.seat_limit if e.seat_limit else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No enrollments found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

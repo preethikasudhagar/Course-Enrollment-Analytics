@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Departments - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Department Management</h1>
+    
+    <div class="admin-actions">
+        <button onclick="showCreateDepartmentModal()" class="btn btn-primary">Create New Department</button>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Courses Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td>{{ dept.code }}</td>
+                    <td>{{ dept.name }}</td>
+                    <td>{{ dept.courses|length }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Department Modal -->
+<div id="createDepartmentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeCreateDepartmentModal()">&times;</span>
+        <h2>Create New Department</h2>
+        <form id="createDepartmentForm">
+            <div class="form-group">
+                <label for="deptName">Name:</label>
+                <input type="text" id="deptName" required>
+            </div>
+            <div class="form-group">
+                <label for="deptCode">Code:</label>
+                <input type="text" id="deptCode" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Department</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showCreateDepartmentModal() {
+        document.getElementById('createDepartmentModal').style.display = 'block';
+    }
+    
+    function closeCreateDepartmentModal() {
+        document.getElementById('createDepartmentModal').style.display = 'none';
+    }
+    
+    document.getElementById('createDepartmentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const data = {
+            name: document.getElementById('deptName').value,
+            code: document.getElementById('deptCode').value
+        };
+        
+        try {
+            const response = await fetch('/admin/departments/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Department created successfully');
+                location.reload();
+            } else {
+                alert(result.message || 'Failed to create department');
+            }
+        } catch (error) {
+            alert('Error creating department');
+        }
+    });
+</script>
+{% endblock %}

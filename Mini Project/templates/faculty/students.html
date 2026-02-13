@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Enrolled Students - Faculty{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>Enrolled Students</h1>
+    <p class="lead">Students in your assigned courses. Search, filter, and export (CSV).</p>
+
+    <form method="get" class="filter-form" style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <input type="text" name="search_name" placeholder="Search by name" value="{{ request.args.get('search_name', '') }}" class="form-group" style="padding:0.5rem;">
+        <input type="text" name="search_roll" placeholder="Roll number" value="{{ request.args.get('search_roll', '') }}" style="padding:0.5rem;">
+        <select name="filter_status" style="padding:0.5rem;">
+            <option value="">All statuses</option>
+            <option value="enrolled" {% if request.args.get('filter_status') == 'enrolled' %}selected{% endif %}>Enrolled</option>
+            <option value="waitlisted" {% if request.args.get('filter_status') == 'waitlisted' %}selected{% endif %}>Waitlisted</option>
+            <option value="withdrawn" {% if request.args.get('filter_status') == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+        </select>
+        <select name="filter_course" style="padding:0.5rem;">
+            <option value="">All courses</option>
+            {% for c in courses %}
+            <option value="{{ c.id }}" {% if request.args.get('filter_course')|string == c.id|string %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('faculty.students_export') }}" class="btn btn-primary">Export CSV</a>
+    </form>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Roll No.</th>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Course</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in enrollments %}
+                <tr>
+                    <td>{{ e.roll_number }}</td>
+                    <td>{{ e.student_name }}</td>
+                    <td>{{ e.student_email }}</td>
+                    <td>{{ e.course_name }} ({{ e.course_code }})</td>
+                    <td><span class="badge badge-{{ 'success' if e.status == 'enrolled' else 'warning' if e.status == 'waitlisted' else 'secondary' }}">{{ e.status }}</span></td>
+                    <td>{{ (e.remarks or '—')[:50] }}</td>
+                    <td>
+                        <a href="{{ url_for('faculty.student_profile', student_id=e.student_id) }}" class="btn btn-sm btn-primary">Profile</a>
+                        <button type="button" class="btn btn-sm btn-secondary btn-remark" data-id="{{ e.id }}" data-status="{{ e.status }}" data-remarks="{{ e.remarks or '' }}">Remarks</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No students match the criteria.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="remarkModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="document.getElementById('remarkModal').style.display='none'">&times;</span>
+        <h3>Update Status / Add Remarks</h3>
+        <input type="hidden" id="remarkEnrollmentId">
+        <div class="form-group">
+            <label>Status</label>
+            <select id="remarkStatus">
+                <option value="enrolled">Enrolled</option>
+                <option value="waitlisted">Waitlisted</option>
+                <option value="withdrawn">Withdrawn</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Remarks (e.g. flag for review)</label>
+            <textarea id="remarkText" rows="3"></textarea>
+        </div>
+        <button type="button" class="btn btn-primary" id="saveRemark">Save</button>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.btn-remark').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.getElementById('remarkEnrollmentId').value = this.dataset.id;
+        document.getElementById('remarkStatus').value = this.dataset.status || 'enrolled';
+        document.getElementById('remarkText').value = this.dataset.remarks || '';
+        document.getElementById('remarkModal').style.display = 'block';
+    });
+});
+document.getElementById('saveRemark').onclick = async function() {
+    var id = document.getElementById('remarkEnrollmentId').value;
+    var r = await fetch('/faculty/enrollments/' + id + '/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: document.getElementById('remarkStatus').value, remarks: document.getElementById('remarkText').value })
+    });
+    var d = await r.json();
+    if (d.success) location.reload();
+    else alert(d.message || 'Failed');
+};
+</script>
+{% endblock %}

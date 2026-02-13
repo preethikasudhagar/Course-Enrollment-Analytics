@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}High / Low Demand Courses - Admin{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <h1>High-Demand vs Low-Demand Courses</h1>
+    <div class="dashboard-section">
+        <h2>High-Demand Courses</h2>
+        <table class="data-table">
+            <thead>
+                <tr><th>Course Name</th><th>Code</th><th>Department</th><th>Enrollment Count</th></tr>
+            </thead>
+            <tbody>
+                {% for r in high_demand %}
+                <tr><td>{{ r.course_name }}</td><td>{{ r.course_code }}</td><td>{{ r.department }}</td><td>{{ r.enrollment_count }}</td></tr>
+                {% else %}
+                <tr><td colspan="4">No data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="dashboard-section">
+        <h2>Low-Demand Courses</h2>
+        <table class="data-table">
+            <thead>
+                <tr><th>Course Name</th><th>Code</th><th>Department</th><th>Enrollment Count</th></tr>
+            </thead>
+            <tbody>
+                {% for r in low_demand %}
+                <tr><td>{{ r.course_name }}</td><td>{{ r.course_code }}</td><td>{{ r.department }}</td><td>{{ r.enrollment_count }}</td></tr>
+                {% else %}
+                <tr><td colspan="4">No data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

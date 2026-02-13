@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}My Courses - Student{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>My Courses</h1>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Course Name</th>
+                    <th>Course Code</th>
+                    <th>Department</th>
+                    <th>Credits</th>
+                    <th>Status</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    <td>{{ enrollment.course_name }}</td>
+                    <td>{{ enrollment.course_code }}</td>
+                    <td>{{ enrollment.department }}</td>
+                    <td>{{ enrollment.credits }}</td>
+                    <td><span class="badge badge-success">{{ enrollment.status }}</span></td>
+                    <td>{{ enrollment.grade or 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+                {% if not enrollments %}
+                <tr>
+                    <td colspan="6" class="text-center">No courses enrolled</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
